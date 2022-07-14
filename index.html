@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <div>
+    <input id="input-text" type="text">
+    <div id="div-text">Hello, ???</div>
+  </div>
+  <script>
+    class ReactiveVar {
+
+      value;
+
+      depend = new Dependency(); 
+
+      get(){
+        this.depend.depend();
+        return this.value;
+      }
+      
+      set(value){
+        this.value = value;
+        this.depend.changed();
+      }
+    };
+
+    class Dependency {
+
+      autorunList = [];
+      
+      depend(){
+        Tracker.current&&this.autorunList.push(Tracker.current)
+      }
+
+      changed(){
+        this.autorunList.forEach(fn => {
+          fn()
+        })
+      }
+
+    };
+
+    const Tracker = {
+      autorun(fn){
+        const old = this.current;
+        this.current = fn; 
+        fn();
+        this.current = old; 
+      },      
+      nonreactive(fn){
+        const old = this.current;
+        this.current = null; 
+        const value = fn();
+        this.current = old; 
+        return value;
+      },
+      current: null,
+    }
+  </script>
+  <script>
+    const name = new ReactiveVar();
+    const time = new ReactiveVar();
+    const rand = new ReactiveVar();
+  </script>
+  <script>
+    const input = document.getElementById('input-text');
+    input.addEventListener('input', ()=>{
+      name.set(input.value);
+    });
+    setInterval(() => {
+      time.set(new Date());
+    }, 1000);
+    setInterval(() => {
+      rand.set(Math.floor(Math.random()*1000))
+    }, 1000);
+  </script>
+
+
+
+  <script>
+    Tracker.autorun(() => {
+      // const num = Tracker.nonreactive(()=>rand.get());
+      const num = rand.get();
+      // Tracker.autorun(() => {
+        const div = document.getElementById('div-text');
+        div.innerText = `Hello, ${name.get()}, ${num}`;
+        console.log('render');
+      // })
+    });
+  </script>
+  <script>
+    Tracker.autorun(() => {
+      document.title = `Hi, ${name.get()}`;
+    });
+  </script>
+  <script>
+    Tracker.autorun(() => {
+      console.log(name.get());
+    });
+    name.set('Artem');
+  </script>
+</body>
+</html>
